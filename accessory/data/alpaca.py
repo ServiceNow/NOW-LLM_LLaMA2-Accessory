@@ -113,7 +113,7 @@ class FinetuneDataset(Dataset):
             # sort group_ann for higher efficiency (items in one global batch with similar length)
             for meta_type, meta_l in group_ann.items():
                 meta_l.sort(
-                    key=lambda data_item: len(format_prompt(data_item, data_item["sys_prompt"]) + data_item['output'])
+                    key=lambda data_item: len(format_prompt(data_item, data_item["sys_prompt"]))
                 )
 
             ann = sum(list(group_ann.values()), start=[])
@@ -172,12 +172,12 @@ class FinetuneDataset(Dataset):
             # warnings.warn("image channel format: BGR")
             # image = Image.fromarray(cv2.imread(image))
             image = self.transform(image)
-        answer = data_item["output"]
+        answer = data_item['targets_pretokenized'].strip()
 
-        input1 = format_prompt(data_item, data_item["sys_prompt"])
+        input1 = data_item['inputs_pretokenized'].strip()
         input2 = input1 + answer
         input1 = torch.tensor(self.tokenizer.encode(input1, bos=True, eos=False), dtype=torch.int64)
-        input2 = torch.tensor(self.tokenizer.encode(input2, bos=True, eos=True), dtype=torch.int64)
+        input2 = torch.tensor(self.tokenizer.encode(input2, bos=True, eos=False), dtype=torch.int64)
         if image is not None:
             max_words = self.max_words - self.image_words
         else:
