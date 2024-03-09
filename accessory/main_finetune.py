@@ -18,6 +18,8 @@ from torch.utils.data import Dataset
 import torch.distributed as dist
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
+import wandb
+
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
     MixedPrecision,
@@ -134,6 +136,12 @@ def get_args_parser():
                         help="enable gradient checkopointing")
     parser.add_argument('--quant', action="store_true", default=False,
                         help="enable quantization to speedup and save memory")
+
+    # logging
+    parser.add_argument('--log_to', type=str, choices=['wandb', 'tensorboard'], default='tensorboard')
+    parser.add_argument('--wandb_project', type=str, default='my_project')
+    parser.add_argument('--wandb_entity', type=str, default='my_entity')
+    parser.add_argument('--wandb_run', type=str, default='my_run')
 
     return parser
 
@@ -299,7 +307,18 @@ def main(args):
 
     if global_rank == 0 and args.output_dir is not None:
         os.makedirs(args.output_dir, exist_ok=True)
-        log_writer = SummaryWriter(log_dir=args.output_dir)
+        if args.log_to == "wandb":
+            # Initialize wandb logging
+            log_writer = wandb.init(
+                name=args.wandb_run,
+                entity=args.wandb_entity,
+                project=args.wandb_project,
+                config=args,
+                save_code=True
+            )
+        else:
+            # initialize tensorboard
+            log_writer = SummaryWriter(log_dir=args.output_dir)
     else:
         log_writer = None
 
