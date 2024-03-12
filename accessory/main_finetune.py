@@ -267,7 +267,7 @@ def main(args):
             "fsdp": ShardingStrategy.FULL_SHARD,
         }[args.data_parallel],
         device_id=torch.cuda.current_device(),
-        ignored_parameters=fsdp_ignored_parameters
+        ignored_states=fsdp_ignored_parameters
     )
     # broadcast non-model-parallel parameters within model parallel group
     misc.broadcast_nonmp_parameters(model)
@@ -277,7 +277,6 @@ def main(args):
         print("apply gradient checkpointing")
         non_reentrant_wrapper = partial(
             checkpoint_wrapper,
-            offload_to_cpu=False,
             checkpoint_impl=CheckpointImpl.NO_REENTRANT,
         )
         check_fn = lambda submodule: isinstance(submodule, TransformerBlock)
@@ -313,7 +312,7 @@ def main(args):
                 name=args.wandb_run,
                 entity=args.wandb_entity,
                 project=args.wandb_project,
-                config=args,
+                config=vars(args),
                 save_code=True
             )
         else:

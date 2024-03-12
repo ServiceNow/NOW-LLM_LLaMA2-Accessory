@@ -167,3 +167,8 @@ tokenizer.model
 *.swp
 
 .asset/
+
+wandb/
+scripts/
+data/
+.vscode/
