@@ -25,7 +25,7 @@ def train_one_epoch(model: torch.nn.Module,
 
     model.zero_grad(set_to_none=True)
 
-    if log_writer is not None:
+    if log_writer is not None and args.log_to == "tensorboard":
         print('log_dir: {}'.format(log_writer.log_dir))
     for data_iter_step, batch_data in enumerate(
         metric_logger.log_every(data_loader, print_freq, header, start_iter), start=start_iter):
@@ -84,7 +84,10 @@ def train_one_epoch(model: torch.nn.Module,
             metric_value = metric.value
             metric_value = misc.all_reduce_mean(metric_value, group=fs_init.get_data_parallel_group())
             if log_writer is not None:
-                log_writer.add_scalar(metric_name, metric_value, data_iter_step + len(data_loader) * epoch)
+                if args.log_to == "wandb":
+                    log_writer.log({metric_name: metric_value}, step=data_iter_step + len(data_loader) * epoch)
+                else:
+                    log_writer.add_scalar(metric_name, metric_value, data_iter_step + len(data_loader) * epoch)
 
         # save within epoch
         n_update_per_save = args.save_iteration_interval // accum_iter

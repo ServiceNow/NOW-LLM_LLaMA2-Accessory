@@ -12,11 +12,18 @@ data_parallel=fsdp
 model_parallel=8
 
 exp_name=<exp_name>
+log_to=<wandb_or_tensorboard>
+wandb_project=<wandb_project>
+wandb_entity=<wandb_entity>
 echo "exp name: $exp_name"
 mkdir -p output/"$exp_name"
 
 command="python main_finetune.py \
 --output_dir output/${exp_name} --epochs 3 --warmup_epochs 0.1 \
+--log_to ${log_to} \
+--wandb_run ${exp_name} \
+--wandb_project ${wandb_project} \
+--wandb_entity ${wandb_entity} \
 --batch_size 4 --accum_iter 8 --num_workers 1 \
 --max_words 8192 \
 --lr 0.00002 --min_lr 0.0 --clip_grad 1 --weight_decay 0.1 \
