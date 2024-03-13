@@ -76,6 +76,8 @@ def get_args_parser():
                         help='path to checkpoint from pretrain stage')
     parser.add_argument('--pretrained_type', type=str, default=None, choices=['consolidated', 'meta_ori'],
                         help='<Deprecated> pretrained checkpoint save format, will be automatically discerned now')
+    parser.add_argument('--attention_dropout', type=float, default=0.0,
+                        help='attention dropout (default: 0.0)')
 
     # Optimizer parameters
     parser.add_argument('--weight_decay', type=float, default=0.02,
