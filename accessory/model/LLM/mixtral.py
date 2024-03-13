@@ -149,7 +149,7 @@ class Attention(nn.Module):
         )
         if use_flash:
             # repeating k/v heads is included in flash_attn
-            output = flash_attn_func(xq, keys, values, dropout_p=0.0, causal=is_causal)
+            output = flash_attn_func(xq, keys, values, dropout_p=self.args.attention_dropout, causal=is_causal)
             output = output.contiguous().view(bsz, seqlen, -1)
         else:
             # repeat k/v heads if n_kv_heads < n_heads
@@ -165,7 +165,7 @@ class Attention(nn.Module):
                     mask = mask.to(xq.device, non_blocking=True)
                 else:
                     raise NotImplementedError()
-            output = F.scaled_dot_product_attention(xq, keys, values, dropout_p=0.0, attn_mask=mask)
+            output = F.scaled_dot_product_attention(xq, keys, values, dropout_p=self.args.attention_dropout, attn_mask=mask)
             output = output.transpose(
                 1, 2
             ).contiguous().view(bsz, seqlen, -1)
