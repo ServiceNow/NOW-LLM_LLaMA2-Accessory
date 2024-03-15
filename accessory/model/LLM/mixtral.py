@@ -44,6 +44,8 @@ class ModelArgs:
 
     max_batch_size: int = 32
     max_seq_len: int = 2048
+        
+    attention_dropout: float = 0.1
 
     moe: Dict[str, int] = field(default_factory=lambda: {
         "num_experts_per_tok": 2,

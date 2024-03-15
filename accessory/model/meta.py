@@ -19,7 +19,7 @@ import torch.distributed as dist
 class MetaModel(nn.Module):
     def __init__(
         self, llama_type: str, llama_config: str|List[str], tokenizer_path: str,
-        with_visual: bool = False, max_seq_len: int = 4096
+        with_visual: bool = False, max_seq_len: int = 4096, attention_dropout: float = 0.1 
     ) -> None:
         super().__init__()
 
@@ -38,6 +38,7 @@ class MetaModel(nn.Module):
                 llama_args.update(json.loads(f.read()))
         llama_args['max_seq_len'] = max_seq_len
         llama_args['max_batch_size'] = 32
+        llama_args['attention_dropout'] = attention_dropout
 
         tokenizer = Tokenizer(model_path=tokenizer_path)
         llama_args['vocab_size'] = tokenizer.n_words
