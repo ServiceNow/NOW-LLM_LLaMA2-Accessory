@@ -189,7 +189,7 @@ def main(args):
                 with default_tensor_type(dtype=mixed_precision_dtype, device="cpu"):
                     model = MetaModel(args.llama_type, args.llama_config,
                                       args.tokenizer_path, with_visual=not args.no_visual,
-                                      max_seq_len=args.max_words)
+                                      max_seq_len=args.max_words, attention_dropout=args.attention_dropout)
                 promote_trainable_params_to_fp32(model)
                 misc.print_param_status(model)
 
@@ -369,7 +369,7 @@ def main(args):
                      **{f'val_{k}': v for k, v in train_stats.items()}}
 
         if args.output_dir and misc.is_main_process():
-            if log_writer is not None:
+            if log_writer is not None and args.log_to == "tensorboard": 
                 log_writer.flush()
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
