@@ -318,7 +318,7 @@ def main(args):
         DatasetClass = DPOFinetuneDataset
 
     dataset_train = DatasetClass(
-        args.data_config, transform=get_transform(args.image_transform, getattr(model.llma, 'image_size', 224)),
+        config_path=args.data_config, transform=get_transform(args.image_transform, getattr(model.llma, 'image_size', 224)),
         max_words=args.max_words, image_words=model.get_image_words(), tokenizer=model.tokenizer,
         cache_on_disk=args.cache_ann_on_disk, rank=global_rank)
 

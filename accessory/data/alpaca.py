@@ -404,4 +404,3 @@ class FinetuneDistSampler(Sampler):
         """
         self.epoch = epoch
         self.start_iter = start_iter
-

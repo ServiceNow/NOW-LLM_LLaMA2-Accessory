@@ -39,6 +39,9 @@ def format_prompt(format_dict: Dict, sys_name="alpaca"):
         
     elif sys_name == "nowllm":
         return format_dict['inputs_pretokenized'].strip() + format_dict['targets_pretokenized'].strip()
+    
+    elif sys_name == "nowllm":
+        return format_dict['chosen'].strip()
 
     elif sys_name == "None":
         return "{instruction}".format_map(format_dict)
