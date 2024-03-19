@@ -46,7 +46,7 @@ def train_one_epoch(model: torch.nn.Module,
         }[args.precision]
         with autocast_ctx:
             
-            dpo_output, additional_loss_dict = model(examples, labels, ref_logps)
+            dpo_output, additional_loss_dict = model(examples, labels, masks, ref_logps)
         loss = dpo_output["loss"]
 
         # how do we wanna weigh the load balancing loss in the MOE WRT DPO? First read how it is done in literature
