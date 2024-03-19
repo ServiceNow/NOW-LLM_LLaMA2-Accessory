@@ -261,13 +261,20 @@ class DPOFinetuneDataset(FinetuneDataset):
             data_item = json.loads(data_item)
 
         chosen_inputs, chosen_labels = self.process_sample(data_item["chosen_inputs_pretokenized"].strip(), data_item["chosen_targets_pretokenized"].strip())
+        to_add = [0] * (self.max_words - len(data_item["chosen_target_mask"]))
+        # change to right padding
+        chosen_mask = data_item["chosen_target_mask"] + to_add
+        chosen_ref_logp = torch.tensor(data_item["chosen_logp"])
+        
         rej_inputs, rej_labels = self.process_sample(data_item["rejected_inputs_pretokenized"].strip(), data_item["rejected_targets_pretokenized"].strip())
-        chosen_ref_logp = torch.tensor(data_item["rejected_ref_logp"])
-        rej_ref_logp = torch.tensor(data_item["chosen_ref_logp"])
+        to_add = [0] * (self.max_words - len(data_item["rejected_target_mask"]))
+        rej_mask = data_item["rejected_target_mask"] + to_add
+        rej_ref_logp = torch.tensor(data_item["rejected_logp"])
 
-        return chosen_inputs, chosen_labels, chosen_ref_logp, rej_inputs, rej_labels, rej_ref_logp
+        return chosen_inputs, chosen_labels, chosen_mask, chosen_ref_logp, rej_inputs, rej_labels, rej_mask, rej_ref_logp
+
     
-    def process_sample(self, prompt: str, response: str) -> Tuple[torch.FloatTensor]:
+    def process_sample_old(self, prompt: str, response: str) -> Tuple[torch.FloatTensor]:
         sample = prompt + response
         
         # confirm the output of this - with eos and bos
@@ -295,6 +302,22 @@ class DPOFinetuneDataset(FinetuneDataset):
         label_mask = label_mask.float()
 
         return sample, labels
+    
+    def process_sample(self, prompt: str, response: str) -> Tuple[torch.FloatTensor]:
+        sample = prompt + response
+        
+        # confirm the output of this - with eos and bos
+        prompt = torch.tensor(self.tokenizer.encode(prompt, bos=False, eos=False), dtype=torch.int64)
+        sample = torch.tensor(self.tokenizer.encode(sample, bos=False, eos=False), dtype=torch.int64)
+
+        padding = self.max_words - sample.shape[0]
+        if padding > 0:
+            sample = torch.cat((sample, torch.zeros(padding, dtype=torch.int64) - 1))
+        elif padding < 0:
+            sample = sample[:self.max_words]
+            warnings.warn(f'Warning for truncation input!\n{sample}')
+
+        return sample, sample[:]
     
 
 
