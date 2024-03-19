@@ -30,10 +30,11 @@ def train_one_epoch(model: torch.nn.Module,
     for data_iter_step, batch_data in enumerate(
         metric_logger.log_every(data_loader, print_freq, header, start_iter), start=start_iter):
 
-        chosen_inputs, chosen_labels, chosen_ref_logp, rej_inputs, rejected_labels, rej_ref_logp =  batch_data
+        chosen_inputs, chosen_labels, chosen_mask, chosen_ref_logp, rej_inputs, rej_labels, rej_mask, rej_ref_logp =  batch_data
         examples = torch.cat([chosen_inputs, rej_inputs], dim=0)
-        labels = torch.cat([chosen_labels, rejected_labels], dim=0)
+        labels = torch.cat([chosen_labels, rej_labels], dim=0)
         ref_logps = torch.cat([chosen_ref_logp, rej_ref_logp])
+        masks = torch.cat([chosen_mask, rej_mask])
 
         if data_iter_step % accum_iter == 0:
             lr_sched.adjust_learning_rate_epoch(optimizer, data_iter_step / len(data_loader) + epoch, args)

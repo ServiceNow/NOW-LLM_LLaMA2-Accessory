@@ -14,7 +14,7 @@ class DPOModel(MetaModel):
         self.beta = beta
         self.eps = eps
     
-    def forward(self, examples: torch.tensor, labels: torch.tensor, ref_logps: torch.tensor) -> Tuple[Dict[str, Any]]:
+    def forward(self, examples: torch.tensor, labels: torch.tensor, masks: torch.tensor, ref_logps: torch.tensor) -> Tuple[Dict[str, Any]]:
         
         # truncate padding to longest in batch
         with torch.no_grad():
@@ -32,20 +32,19 @@ class DPOModel(MetaModel):
                 pos = 2
             examples = examples[:, :pos+1]
             labels = labels[:, :pos+1]
+            masks = masks[:, :pos+1]
 
         output = self.llma(examples, images=None)
         if isinstance(output, tuple):
             output, additional_loss = output
         else:
             additional_loss = {}
-        output = output[:, :-1, :]
-        labels = labels[:, 1:]
 
-        policy_logps = self.get_batch_logps(output, labels)
-        
+        policy_logps = self.get_batch_logps(output, labels, masks)
+
         # we concat chosen and rejected so original bsize is half of the output bsize
         bsize = int(output.shape[0]/2)
-
+        
         dpo_output = self.compute_loss(
             policy_logps[:bsize],
             policy_logps[bsize:],
