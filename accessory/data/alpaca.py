@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Dict, Optional, Iterator, Tuple
+from typing import Any, List, Dict, Optional, Iterator, Tuple
 from pathlib import Path
 from time import sleep
 import h5py
@@ -189,14 +189,21 @@ class FinetuneDataset(Dataset):
         elif padding < 0:
             input2 = input2[:max_words]
             warnings.warn(f'Warning for truncation input!\n{data_item}')
+
         labels = copy.deepcopy(input2)
+        # set prompt to -1
         labels[:len(input1)] = -1
+        
+        # not sure this affects input2 cos all of its tokens are greater than or equal to zero
         input2_mask = input2.ge(0)
-        label_mask = labels.ge(0)
         input2[~input2_mask] = 0
-        labels[~label_mask] = 0
         input2_mask = input2_mask.float()
+        
+        # set prompt to be all zeros. it should be noted that the criteria - CrossEntropyLoss - uses ignore_index=0 so that handles pad tokens too
+        label_mask = labels.ge(0)
+        labels[~label_mask] = 0
         label_mask = label_mask.float()
+
         if image is None:
             return input2, labels, input2_mask
         else:
@@ -241,6 +248,54 @@ class MetaPreprocessor:
             })
 
         return new_meta
+    
+
+class DPOFinetuneDataset(FinetuneDataset):
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def __getitem__(self, index):
+        data_item = self.ann[index]
+        if self.cache_on_disk:
+            data_item = json.loads(data_item)
+
+        chosen_inputs, chosen_labels = self.process_sample(data_item["chosen_inputs_pretokenized"].strip(), data_item["chosen_targets_pretokenized"].strip())
+        rej_inputs, rej_labels = self.process_sample(data_item["rejected_inputs_pretokenized"].strip(), data_item["rejected_targets_pretokenized"].strip())
+        chosen_ref_logp = torch.tensor(data_item["rejected_ref_logp"])
+        rej_ref_logp = torch.tensor(data_item["chosen_ref_logp"])
+
+        return chosen_inputs, chosen_labels, chosen_ref_logp, rej_inputs, rej_labels, rej_ref_logp
+    
+    def process_sample(self, prompt: str, response: str) -> Tuple[torch.FloatTensor]:
+        sample = prompt + response
+        
+        # confirm the output of this - with eos and bos
+        prompt = torch.tensor(self.tokenizer.encode(prompt, bos=True, eos=False), dtype=torch.int64)
+        sample = torch.tensor(self.tokenizer.encode(sample, bos=True, eos=False), dtype=torch.int64)
+
+        padding = self.max_words - sample.shape[0]
+        if padding > 0:
+            sample = torch.cat((sample, torch.zeros(padding, dtype=torch.int64) - 1))
+        elif padding < 0:
+            sample = sample[:self.max_words]
+            warnings.warn(f'Warning for truncation input!\n{sample}')
+
+        labels = copy.deepcopy(sample)
+        labels[:len(prompt)] = -1  # set prompt token ids to -1
+        
+        # not sure this affects input2 cos all of its tokens are greater than or equal to zero
+        #sample_mask = sample.ge(0)
+        #sample[~sample_mask] = 0
+        #sample_mask = sample_mask.float()
+        
+        # set prompt to be all zeros. it should be noted that the criteria - CrossEntropyLoss - uses ignore_index=0 so that handles pad tokens too
+        label_mask = labels.ge(0)
+        labels[~label_mask] = 0
+        label_mask = label_mask.float()
+
+        return sample, labels
+    
 
 
 class FinetuneDistSampler(Sampler):
