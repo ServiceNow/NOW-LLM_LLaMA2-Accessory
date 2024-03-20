@@ -670,7 +670,7 @@ def cached_file_from_hf(hf_path: str) -> str:
 
 def collate_fn(batch):
     out = {}
-    for k in batch.keys():
+    for k in batch[0].keys():
         out[k] = torch.stack([sample[k] for sample in batch])
     return out
         
