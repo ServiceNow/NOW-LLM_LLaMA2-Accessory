@@ -263,15 +263,30 @@ class DPOFinetuneDataset(FinetuneDataset):
         output = {}
         
         output["chosen_inputs"], output["rej_inputs"] = self.process_sample(data_item["chosen"].strip(), data_item["rejected"].strip())
-        output["chosen_labels"], output["rej_labels"] = output["chosen_inputs"], output["rej_inputs"]
+        output["chosen_labels"], output["rej_labels"] = output["chosen_inputs"][:], output["rej_inputs"][:]
         
-        to_add = [0] * (self.max_words - len(data_item["chosen_target_mask"]))
-        output["chosen_mask"] = torch.tensor(data_item["chosen_target_mask"] + to_add).long()  # change to right padding
+        to_add = self.max_words - len(data_item["chosen_target_mask"])
+        if to_add > 0:
+            output["chosen_mask"] = torch.tensor(data_item["chosen_target_mask"] + [0]*to_add).long()  # change to right padding
+        elif to_add < 0:
+            output["chosen_mask"] = torch.tensor(data_item["chosen_target_mask"][:self.max_words])
+        else:
+            output["chosen_mask"] = torch.tensor(data_item["chosen_target_mask"])
         output["chosen_ref_logp"] = torch.tensor(data_item["chosen_logp"])
 
-        to_add = [0] * (self.max_words - len(data_item["rejected_target_mask"]))
-        output["rej_mask"] = torch.tensor(data_item["rejected_target_mask"] + to_add).long()
+
+        to_add = self.max_words - len(data_item["rejected_target_mask"])
+        if to_add > 0:
+            output["rej_mask"] = torch.tensor(data_item["rejected_target_mask"] + [0]*to_add).long()
+        elif to_add < 0:
+            output["rej_mask"] = torch.tensor(data_item["rejected_target_mask"][:self.max_words])
+        else:
+            output["rej_mask"] = torch.tensor(data_item["rejected_target_mask"])
+
         output["rej_ref_logp"] = torch.tensor(data_item["rejected_logp"])
+
+        #msg = f"{output['chosen_mask'].shape[0]}, {len(data_item['chosen_target_mask'])}, {output['rej_mask'].shape[0]}, {len(data_item['rejected_target_mask'])}"
+        #assert output["rej_mask"].shape[0] == output["chosen_mask"].shape[0], msg
 
         return output
 
@@ -316,14 +331,14 @@ class DPOFinetuneDataset(FinetuneDataset):
             chosen = torch.cat((chosen, torch.zeros(padding, dtype=torch.int64)))
         elif padding < 0:
             chosen = chosen[:self.max_words]
-            warnings.warn(f'Warning for truncation input!\n{chosen}')
+            #warnings.warn(f'Warning for truncation input!\n{chosen}')
         
         padding = self.max_words - rejected.shape[0]
         if padding > 0:
             rejected = torch.cat((rejected, torch.zeros(padding, dtype=torch.int64)))
         elif padding < 0:
             rejected = rejected[:self.max_words]
-            warnings.warn(f'Warning for truncation input!\n{rejected}')
+            #warnings.warn(f'Warning for truncation input!\n{rejected}')
 
         return chosen, rejected
     

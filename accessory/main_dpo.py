@@ -147,6 +147,7 @@ def get_args_parser():
     parser.add_argument('--wandb_project', type=str, default='my_project')
     parser.add_argument('--wandb_entity', type=str, default='my_entity')
     parser.add_argument('--wandb_run', type=str, default='my_run')
+    parser.add_argument('--log_steps', type=int, default=50)
     
     # dpo
     parser.add_argument('--beta', type=float, default=0.1, help='DPO beta')

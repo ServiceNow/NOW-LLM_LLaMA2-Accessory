@@ -85,14 +85,15 @@ def train_one_epoch(model: torch.nn.Module,
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(lr=lr)
 
-        for metric_name, metric in metric_logger.meters.items():
-            metric_value = metric.value
-            metric_value = misc.all_reduce_mean(metric_value, group=fs_init.get_data_parallel_group())
-            if log_writer is not None:
-                if args.log_to == "wandb":
-                    log_writer.log({metric_name: metric_value}, step=data_iter_step + len(data_loader) * epoch)
-                else:
-                    log_writer.add_scalar(metric_name, metric_value, data_iter_step + len(data_loader) * epoch)
+        if (data_iter_step + 1) % args.log_steps == 0:
+            for metric_name, metric in metric_logger.meters.items():
+                metric_value = metric.value
+                metric_value = misc.all_reduce_mean(metric_value, group=fs_init.get_data_parallel_group())
+                if log_writer is not None:
+                    if args.log_to == "wandb":
+                        log_writer.log({metric_name: metric_value}, step=data_iter_step + len(data_loader) * epoch)
+                    else:
+                        log_writer.add_scalar(metric_name, metric_value, data_iter_step + len(data_loader) * epoch)
 
         # save within epoch
         n_update_per_save = args.save_iteration_interval // accum_iter
