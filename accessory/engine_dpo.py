@@ -30,11 +30,10 @@ def train_one_epoch(model: torch.nn.Module,
     for data_iter_step, batch_data in enumerate(
         metric_logger.log_every(data_loader, print_freq, header, start_iter), start=start_iter):
 
-        chosen_inputs, chosen_labels, chosen_mask, chosen_ref_logp, rej_inputs, rej_labels, rej_mask, rej_ref_logp =  batch_data
-        examples = torch.cat([chosen_inputs, rej_inputs], dim=0)
-        labels = torch.cat([chosen_labels, rej_labels], dim=0)
-        ref_logps = torch.cat([chosen_ref_logp, rej_ref_logp])
-        masks = torch.cat([chosen_mask, rej_mask])
+        examples = torch.cat([batch_data["chosen_inputs"], batch_data["rej_inputs"]], dim=0)
+        labels = torch.cat([batch_data["chosen_labels"], batch_data["rej_labels"]], dim=0)
+        ref_logps = torch.cat([batch_data["chosen_ref_logp"], batch_data["rej_ref_logp"]], dim=0)
+        masks = torch.cat([batch_data["chosen_mask"], batch_data["rej_mask"]], dim=0)
 
         if data_iter_step % accum_iter == 0:
             lr_sched.adjust_learning_rate_epoch(optimizer, data_iter_step / len(data_loader) + epoch, args)
@@ -81,7 +80,7 @@ def train_one_epoch(model: torch.nn.Module,
 
         metric_logger.update(dpo_loss=dpo_loss_value)
         metric_logger.update(**{key: val[0].item() for key, val in additional_loss_dict.items()})
-        metric_logger.update(**{key: val[0].item() for key, val in dpo_output.items()})
+        metric_logger.update(**{key: val.item() for key, val in dpo_output.items()})
 
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(lr=lr)

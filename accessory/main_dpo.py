@@ -330,7 +330,7 @@ def main(args):
             # Initialize wandb logging
             log_writer = wandb.init(
                 name=args.wandb_run,
-                entity=args.wandb_entity,
+                #entity=args.wandb_entity,
                 project=args.wandb_project,
                 config=vars(args),
                 save_code=True

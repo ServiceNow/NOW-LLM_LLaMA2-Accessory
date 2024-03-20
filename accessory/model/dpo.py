@@ -71,7 +71,7 @@ class DPOModel(MetaModel):
         labels = labels[:, 1:].clone()
         logits = logits[:, :-1, :]
         
-        if loss_mask:
+        if loss_mask is not None:
             loss_mask = loss_mask[:, 1:]
         else:
             # pad tokens and user input prompt are set to 0 in the labels
