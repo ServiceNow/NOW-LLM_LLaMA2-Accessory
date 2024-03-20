@@ -666,3 +666,11 @@ def cached_file_from_hf(hf_path: str) -> str:
         download_files()
 
     return os.path.join(cache_path, subfolder)
+
+
+def collate_fn(batch):
+    out = {}
+    for k in batch.keys():
+        out[k] = torch.stack([sample[k] for sample in batch])
+    return out
+        

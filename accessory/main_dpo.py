@@ -54,6 +54,7 @@ from accessory.data.alpaca import DPOFinetuneDataset, FinetuneDataset, FinetuneD
 from accessory.data.conversation.dataset import FinetuneDialogDataset
 from accessory.data.transform import get_transform
 from accessory.util.tensor_parallel import load_tensor_parallel_model_list
+from accessory.util.misc import collate_fn
 
 
 def get_args_parser():
@@ -352,6 +353,7 @@ def main(args):
         pin_memory=args.pin_mem,
         sampler=sampler_train,
         drop_last=True,
+        collate_fn=collate_fn,
     )
 
     start_epoch = 0
