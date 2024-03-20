@@ -34,7 +34,7 @@ class DPOModel(MetaModel):
             labels = labels[:, :pos+1]
             masks = masks[:, :pos+1]
 
-        output = self.llma(examples, images=None)
+        output = self.llma(examples, image=None)
         if isinstance(output, tuple):
             output, additional_loss = output
         else:
