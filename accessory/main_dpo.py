@@ -152,7 +152,7 @@ def get_args_parser():
     # dpo
     parser.add_argument('--beta', type=float, default=0.1, help='DPO beta')
     parser.add_argument('--eps', type=float, default=0, help='DPO epsilon for cDPO')
-    parser.add_argument('--dpop_lambda', type=float, default=None, help='DPOP lambda for penalty')
+    parser.add_argument('--dpop_lambda', type=int, default=0, help='DPOP lambda for penalty')
 
     return parser
 

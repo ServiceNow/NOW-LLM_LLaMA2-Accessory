@@ -119,7 +119,7 @@ class DPOModel(MetaModel):
         # Eq. 3 https://ericmitchell.ai/cdpo.pdf; eps=0 gives original DPO (Eq. 7 of https://arxiv.org/pdf/2305.18290.pdf)
         losses = -F.logsigmoid(self.beta * logits) * (1 - self.eps) - F.logsigmoid(-self.beta * logits) * self.eps
         
-        if self.dpop_lambda is not None:
+        if self.dpop_lambda != 0:
             # loss
             inverse_reward = reference_chosen_logps - policy_chosen_logps
             penalty = self.dpop_lambda * torch.max(torch.zeros_like(inverse_reward), inverse_reward)
