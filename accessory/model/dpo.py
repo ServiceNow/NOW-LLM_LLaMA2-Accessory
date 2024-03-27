@@ -9,7 +9,7 @@ from accessory.model.meta import MetaModel
 
 class DPOModel(MetaModel):
     
-    def __init__(self, beta: float, eps: float=0, dpop_lambda: Optional[float]=None, **kwargs) -> None:
+    def __init__(self, beta: float, eps: float, dpop_lambda: int, **kwargs) -> None:
         super().__init__(**kwargs)
         self.beta = beta
         self.eps = eps

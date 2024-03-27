@@ -240,7 +240,7 @@ def main(args):
             """model = MetaModel(args.llama_type, args.llama_config,
                             args.tokenizer_path, with_visual=not args.no_visual,
                             max_seq_len=args.max_words)"""
-            model = DPOModel(args.beta, eps=0, dpop_lambda=args.dpop_lambda, **kwargs)
+            model = DPOModel(args.beta, args.eps, args.dpop_lambda, **kwargs)
 
         print("Finish initialization.")
         #promote_trainable_params_to_fp32(model)
