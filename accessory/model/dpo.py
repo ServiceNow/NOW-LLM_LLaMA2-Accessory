@@ -123,7 +123,7 @@ class DPOModel(MetaModel):
             # loss
             inverse_reward = reference_chosen_logps - policy_chosen_logps
             penalty = self.dpop_lambda * torch.max(torch.zeros_like(inverse_reward), inverse_reward)
-            losses -= penalty
+            losses += penalty
             
             # rewards
             chosen_rewards = self.beta * ((policy_chosen_logps - reference_chosen_logps) - penalty)
