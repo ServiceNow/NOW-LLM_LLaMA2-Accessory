@@ -9,10 +9,12 @@ from accessory.model.meta import MetaModel
 
 class DPOModel(MetaModel):
     
-    def __init__(self, beta: float, eps: float=0, **kwargs) -> None:
+    def __init__(self, beta: float, eps: float=0, dpop_lambda: Optional[float]=None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.beta = beta
         self.eps = eps
+        self.dpop_lambda = dpop_lambda
+        
     
     def forward(self, examples: torch.tensor, labels: torch.tensor, masks: torch.tensor, ref_logps: torch.tensor) -> Tuple[Dict[str, Any]]:
         
@@ -117,8 +119,18 @@ class DPOModel(MetaModel):
         # Eq. 3 https://ericmitchell.ai/cdpo.pdf; eps=0 gives original DPO (Eq. 7 of https://arxiv.org/pdf/2305.18290.pdf)
         losses = -F.logsigmoid(self.beta * logits) * (1 - self.eps) - F.logsigmoid(-self.beta * logits) * self.eps
         
-        chosen_rewards = self.beta * (policy_chosen_logps - reference_chosen_logps)
-        rejected_rewards = self.beta * (policy_rejected_logps - reference_rejected_logps)
+        if self.dpop_lambda is not None:
+            # loss
+            inverse_reward = reference_chosen_logps - policy_chosen_logps
+            penalty = self.dpop_lambda * torch.max(torch.zeros_like(inverse_reward), inverse_reward)
+            losses -= penalty
+            
+            # rewards
+            chosen_rewards = self.beta * ((policy_chosen_logps - reference_chosen_logps) - penalty)
+            rejected_rewards = self.beta * (policy_rejected_logps - reference_rejected_logps)
+        else:
+            chosen_rewards = self.beta * (policy_chosen_logps - reference_chosen_logps)
+            rejected_rewards = self.beta * (policy_rejected_logps - reference_rejected_logps)
         
         outputs = {
             "chosen_rewards": chosen_rewards.detach().mean().cpu(),
