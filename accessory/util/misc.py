@@ -672,8 +672,8 @@ def collate_fn(batch):
     out = {}
     for k in batch[0].keys():
         if k == "tag":
-            out[k] = torch.stack([sample[k] for sample in batch])
-        else:
             out[k] = [sample[k] for sample in batch]
+        else:
+            out[k] = torch.stack([sample[k] for sample in batch])
     return out
         
