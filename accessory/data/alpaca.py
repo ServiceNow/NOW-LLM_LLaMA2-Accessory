@@ -73,6 +73,7 @@ class FinetuneDataset(Dataset):
                 meta_ext = os.path.splitext(meta_path)[-1]
                 #   read data meta file
                 #   meta_l should finally be a list of data items, and each data item should be a dict
+                prompt_type = meta.get('prompt_type', 'alpaca')
                 if meta_ext == ".json":
                     with open(meta_path) as f:
                         meta_l = json.load(f)
@@ -81,7 +82,12 @@ class FinetuneDataset(Dataset):
                     with open(meta_path) as f:
                         for i, line in enumerate(f):
                             try:
-                                meta_l.append(json.loads(line))
+                                line = json.loads(line)
+                                if prompt_type == "kto":
+                                    if line["tag"] in {"chosen", "rejected_1"}:
+                                        meta_l.append(line)
+                                else:
+                                    meta_l.append(line)
                             except json.decoder.JSONDecodeError as e:
                                 print(f"Error decoding the following jsonl line ({i}):\n{line.rstrip()}", force=True)
                                 raise e

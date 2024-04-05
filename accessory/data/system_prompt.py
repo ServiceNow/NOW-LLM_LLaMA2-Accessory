@@ -43,6 +43,9 @@ def format_prompt(format_dict: Dict, sys_name="alpaca"):
     elif sys_name == "dpo":
         return format_dict['chosen'].strip()
 
+    elif sys_name == "kto":
+        return format_dict['conversation'].strip()
+
     elif sys_name == "None":
         return "{instruction}".format_map(format_dict)
 
