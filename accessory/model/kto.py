@@ -67,9 +67,9 @@ class KTOModel(MetaModel):
         
         chosen_idx, rejected_idx = [], []
         for i in range(policy_logps.shape[0]):
-            if tags["tag"][i] == "chosen":
+            if tags[i] == "chosen":
                 chosen_idx.append(i)
-            elif tags["tag"][i] == "rejected":
+            elif tags[i] == "rejected":
                 rejected_idx.append(i)
         
         dpo_output = self.compute_loss(
