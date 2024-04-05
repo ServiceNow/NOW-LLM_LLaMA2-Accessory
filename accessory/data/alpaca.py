@@ -84,7 +84,7 @@ class FinetuneDataset(Dataset):
                             try:
                                 line = json.loads(line)
                                 if prompt_type == "kto":
-                                    if line["tag"] in {"chosen", "rejected_1"}:
+                                    if line["tag"] in {"chosen", "rejected_2"}:
                                         meta_l.append(line)
                                 else:
                                     meta_l.append(line)
