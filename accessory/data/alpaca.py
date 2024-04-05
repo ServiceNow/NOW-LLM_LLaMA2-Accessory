@@ -341,7 +341,80 @@ class DPOFinetuneDataset(FinetuneDataset):
             #warnings.warn(f'Warning for truncation input!\n{rejected}')
 
         return chosen, rejected
+
+
+
+class KTOFinetuneDataset(FinetuneDataset):
     
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        kl_avgs = []
+        for sample in self.ann:
+            if self.cache_on_disk:
+                sample = json.loads(sample)
+            kl_avgs.append(sample["ref_kl_logp"])
+        self.kl_avg = np.mean(kl_avgs)
+
+    
+    def __getitem__(self, index):
+        data_item = self.ann[index]
+        if self.cache_on_disk:
+            data_item = json.loads(data_item)
+
+        output = {}
+        output["input_ids"], output["kl_input_ids"] =  self.process_sample(data_item["text"].strip(), data_item["kl_text"].strip())
+        output["labels"], output["kl_labels"] = output["input_ids"][:], output["kl_input_ids"][:]
+        
+        to_add = self.max_words - len(data_item["target_mask"])
+        if to_add > 0:
+            output["input_masks"] = torch.tensor(data_item["target_mask"] + [0]*to_add).long()  # change to right padding
+        elif to_add < 0:
+            output["input_masks"] = torch.tensor(data_item["target_mask"][:self.max_words])
+        else:
+            output["input_masks"] = torch.tensor(data_item["target_mask"])
+        output["ref_logps"] = torch.tensor(data_item["ref_logp"])
+
+
+        to_add = self.max_words - len(data_item["kl_target_mask"])
+        if to_add > 0:
+            output["kl_input_masks"] = torch.tensor(data_item["kl_target_mask"] + [0]*to_add).long()
+        elif to_add < 0:
+            output["kl_input_masks"] = torch.tensor(data_item["kl_target_mask"][:self.max_words])
+        else:
+            output["kl_input_masks"] = torch.tensor(data_item["kl_target_mask"])
+
+        # change to data_items kl ref logps
+        output["kl_ref_logps"] = torch.tensor(self.kl_avg)
+        
+        output["tag"] = data_item["tag"]
+
+        #msg = f"{output['chosen_mask'].shape[0]}, {len(data_item['chosen_target_mask'])}, {output['rej_mask'].shape[0]}, {len(data_item['rejected_target_mask'])}"
+        #assert output["rej_mask"].shape[0] == output["chosen_mask"].shape[0], msg
+        return output
+
+    
+    def process_sample(self, input_text: str, kl_text: str) -> Tuple[torch.FloatTensor]:
+
+        # confirm the output of this - with eos and bos
+        input_text = torch.tensor(self.tokenizer.encode(input_text, bos=False, eos=False), dtype=torch.int64)
+        kl_text = torch.tensor(self.tokenizer.encode(kl_text, bos=False, eos=False), dtype=torch.int64)
+
+        padding = self.max_words - input_text.shape[0]
+        if padding > 0:
+            input_text = torch.cat((input_text, torch.zeros(padding, dtype=torch.int64)))
+        elif padding < 0:
+            input_text = input_text[:self.max_words]
+            #warnings.warn(f'Warning for truncation input!\n{chosen}')
+        
+        padding = self.max_words - kl_text.shape[0]
+        if padding > 0:
+            kl_text = torch.cat((kl_text, torch.zeros(padding, dtype=torch.int64)))
+        elif padding < 0:
+            kl_text = kl_text[:self.max_words]
+            #warnings.warn(f'Warning for truncation input!\n{rejected}')
+
+        return input_text, kl_text
 
 
 class FinetuneDistSampler(Sampler):
