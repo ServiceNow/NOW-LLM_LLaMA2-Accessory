@@ -353,7 +353,7 @@ class KTOFinetuneDataset(FinetuneDataset):
         for sample in self.ann:
             if self.cache_on_disk:
                 sample = json.loads(sample)
-            kl_avgs.append(sample["ref_kl_logp"])
+            kl_avgs.append(sample["kl_conversation_logp"])
         self.kl_avg = np.mean(kl_avgs)
 
     
@@ -363,26 +363,26 @@ class KTOFinetuneDataset(FinetuneDataset):
             data_item = json.loads(data_item)
 
         output = {}
-        output["input_ids"], output["kl_input_ids"] =  self.process_sample(data_item["text"].strip(), data_item["kl_text"].strip())
+        output["input_ids"], output["kl_input_ids"] =  self.process_sample(data_item["conversation"].strip(), data_item["kl_conversation"].strip())
         output["labels"], output["kl_labels"] = output["input_ids"][:], output["kl_input_ids"][:]
         
-        to_add = self.max_words - len(data_item["target_mask"])
+        to_add = self.max_words - len(data_item["conversation_target_mask"])
         if to_add > 0:
-            output["input_masks"] = torch.tensor(data_item["target_mask"] + [0]*to_add).long()  # change to right padding
+            output["input_masks"] = torch.tensor(data_item["conversation_target_mask"] + [0]*to_add).long()  # change to right padding
         elif to_add < 0:
-            output["input_masks"] = torch.tensor(data_item["target_mask"][:self.max_words])
+            output["input_masks"] = torch.tensor(data_item["conversation_target_mask"][:self.max_words])
         else:
-            output["input_masks"] = torch.tensor(data_item["target_mask"])
-        output["ref_logps"] = torch.tensor(data_item["ref_logp"])
+            output["input_masks"] = torch.tensor(data_item["conversation_target_mask"])
+        output["ref_logps"] = torch.tensor(data_item["conversation_logp"])
 
 
-        to_add = self.max_words - len(data_item["kl_target_mask"])
+        to_add = self.max_words - len(data_item["kl_conversation_target_mask"])
         if to_add > 0:
-            output["kl_input_masks"] = torch.tensor(data_item["kl_target_mask"] + [0]*to_add).long()
+            output["kl_input_masks"] = torch.tensor(data_item["kl_conversation_target_mask"] + [0]*to_add).long()
         elif to_add < 0:
-            output["kl_input_masks"] = torch.tensor(data_item["kl_target_mask"][:self.max_words])
+            output["kl_input_masks"] = torch.tensor(data_item["kl_conversation_target_mask"][:self.max_words])
         else:
-            output["kl_input_masks"] = torch.tensor(data_item["kl_target_mask"])
+            output["kl_input_masks"] = torch.tensor(data_item["kl_conversation_target_mask"])
 
         # change to data_items kl ref logps
         output["kl_ref_logps"] = torch.tensor(self.kl_avg)
