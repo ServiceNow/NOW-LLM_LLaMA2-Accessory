@@ -22,7 +22,7 @@ class KTOModel(MetaModel):
         # truncate padding to longest in batch
         with torch.no_grad():
             non_zero_ = torch.count_nonzero(labels, dim=0)
-            non_zero_kl = torch.count_nonzero(kl_examples, dim=0)
+            non_zero_kl = torch.count_nonzero(kl_labels, dim=0)
             pos = non_zero_.shape[0] - 1
             kl_pos = non_zero_kl.shape[0] - 1
             while pos >= 0:
@@ -69,8 +69,10 @@ class KTOModel(MetaModel):
         for i in range(policy_logps.shape[0]):
             if tags[i] == "chosen":
                 chosen_idx.append(i)
-            elif tags[i] == "rejected":
+            elif "rejected" in tags[i]:
                 rejected_idx.append(i)
+            else:
+                raise ValueError(f"Invalid tag in sample. Got `{tags[i]}`")
         
         dpo_output = self.compute_loss(
             policy_logps[chosen_idx, ...],
@@ -152,6 +154,7 @@ class KTOModel(MetaModel):
             # important to cast to policy_dtype; otherwise error will occur during all_gather
             chosen_losses = torch.Tensor([]).to(policy_chosen_logps.dtype).to(policy_chosen_logps.device)
             chosen_rewards = torch.Tensor([]).to(policy_chosen_logps.dtype).to(policy_chosen_logps.device)
+            chosen_logratios = torch.Tensor([]).to(policy_chosen_logps.dtype).to(policy_chosen_logps.device)
         
         if policy_rejected_logps.shape[0] != 0:
             rejected_logratios = (policy_rejected_logps - reference_rejected_logps)
@@ -161,15 +164,17 @@ class KTOModel(MetaModel):
             # important to cast to policy_dtype; otherwise error will occur during all_gather
             rejected_losses = torch.Tensor([]).to(policy_rejected_logps.dtype).to(policy_rejected_logps.device)
             rejected_rewards = torch.Tensor([]).to(policy_rejected_logps.dtype).to(policy_rejected_logps.device)
+            rejected_logratios = torch.Tensor([]).to(policy_rejected_logps.dtype).to(policy_rejected_logps.device)
 
         losses = torch.cat((self.desirable_weight * chosen_losses, self.undesirable_weight * rejected_losses), 0)
         
         outputs = {
             "chosen_rewards": chosen_rewards.detach().mean().cpu(),
             "rejected_rewards": rejected_rewards.detach().mean().cpu(),
-            # "logratios": pi_logratios.detach().mean().cpu(),
-            # "logits": logits.detach().mean().cpu(),
-            "loss": losses.mean()
+            "chosen_logratios": chosen_logratios.detach().mean().cpu(),
+            "rejected_logratios": rejected_logratios.detach().mean().cpu(),
+            "loss": losses.mean(),
+            "kl": kl
         }
         outputs["margins"] = outputs["chosen_rewards"] - outputs["rejected_rewards"]
     
