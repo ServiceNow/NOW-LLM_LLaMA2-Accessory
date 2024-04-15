@@ -324,9 +324,8 @@ def main(args):
         DatasetClass = KTOFinetuneDataset
 
     dataset_train = DatasetClass(
-        config_path=args.data_config, transform=get_transform(args.image_transform, getattr(model.llma, 'image_size', 224)),
-        max_words=args.max_words, image_words=model.get_image_words(), tokenizer=model.tokenizer,
-        cache_on_disk=args.cache_ann_on_disk, rank=global_rank, avg_kl=args.avg_kl)
+        avg_kl=args.avg_kl, config_path=args.data_config, transform=get_transform(args.image_transform, getattr(model.llma, 'image_size', 224)), max_words=args.max_words, image_words=model.get_image_words(), tokenizer=model.tokenizer,
+        cache_on_disk=args.cache_ann_on_disk, rank=global_rank)
 
     print(dataset_train)
 

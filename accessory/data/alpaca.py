@@ -84,7 +84,7 @@ class FinetuneDataset(Dataset):
                             try:
                                 line = json.loads(line)
                                 if prompt_type == "kto":
-                                    if line["tag"] in {"chosen", "rejected_2"}:
+                                    if line["tag"] in {"chosen", "rejected_2"} and line["kl_conversation_logp"] is not None:
                                         meta_l.append(line)
                                 else:
                                     meta_l.append(line)
@@ -352,7 +352,7 @@ class DPOFinetuneDataset(FinetuneDataset):
 
 class KTOFinetuneDataset(FinetuneDataset):
     
-    def __init__(self, **kwargs):
+    def __init__(self, avg_kl: bool, **kwargs):
         super().__init__(**kwargs)
         
         kl_avgs = []
@@ -360,7 +360,8 @@ class KTOFinetuneDataset(FinetuneDataset):
             if self.cache_on_disk:
                 sample = json.loads(sample)
             kl_avgs.append(sample["kl_conversation_logp"])
-        self.kl_avg = np.mean(kl_avgs)
+        self.avg_kl = avg_kl
+        self.kl_avg = np.median(kl_avgs)
 
     
     def __getitem__(self, index):
@@ -391,12 +392,13 @@ class KTOFinetuneDataset(FinetuneDataset):
             output["kl_input_masks"] = torch.tensor(data_item["kl_conversation_target_mask"])
 
         # change to data_items kl ref logps
-        output["kl_ref_logps"] = torch.tensor(self.kl_avg)
+        if self.avg_kl:
+            output["kl_ref_logps"] = torch.tensor(self.kl_avg)
+        else:
+            output["kl_ref_logps"] = torch.tensor(data_item["kl_conversation_logp"])
         
         output["tag"] = data_item["tag"]
 
-        #msg = f"{output['chosen_mask'].shape[0]}, {len(data_item['chosen_target_mask'])}, {output['rej_mask'].shape[0]}, {len(data_item['rejected_target_mask'])}"
-        #assert output["rej_mask"].shape[0] == output["chosen_mask"].shape[0], msg
         return output
 
     
