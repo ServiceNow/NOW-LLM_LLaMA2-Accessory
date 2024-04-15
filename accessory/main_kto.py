@@ -152,6 +152,10 @@ def get_args_parser():
     parser.add_argument('--beta', type=float, default=0.1, help='KTO beta')
     parser.add_argument('--desirable_weight', type=float, default=1.0, help='Desirable samples weight for KTO')
     parser.add_argument('--undesirable_weight', type=float, default=1.0, help='Undesirable samples weight for KTO')
+    
+    # data
+    parser.add_argument('--avg_kl', type=bool, default=False, help='Whether to use average KL')
+    parser.add_argument('--shuffle_data', type=bool, default=False, help='Whether or not to shuffle the data')
 
     return parser
 
@@ -322,7 +326,7 @@ def main(args):
     dataset_train = DatasetClass(
         config_path=args.data_config, transform=get_transform(args.image_transform, getattr(model.llma, 'image_size', 224)),
         max_words=args.max_words, image_words=model.get_image_words(), tokenizer=model.tokenizer,
-        cache_on_disk=args.cache_ann_on_disk, rank=global_rank)
+        cache_on_disk=args.cache_ann_on_disk, rank=global_rank, avg_kl=args.avg_kl)
 
     print(dataset_train)
 
@@ -344,7 +348,7 @@ def main(args):
         log_writer = None
 
     sampler_train = FinetuneDistSampler(
-        dataset_train, num_replicas=dp_world_size, rank=dp_rank, shuffle=True, batch_size=args.batch_size,
+        dataset_train, num_replicas=dp_world_size, rank=dp_rank, shuffle=args.shuffle_data, batch_size=args.batch_size,
         acc_grad=args.accum_iter, seed=args.seed
     )
     data_loader_train = torch.utils.data.DataLoader(
