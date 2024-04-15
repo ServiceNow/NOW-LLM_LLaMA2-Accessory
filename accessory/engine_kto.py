@@ -60,6 +60,7 @@ def train_one_epoch(model: torch.nn.Module,
         dpo_loss_value = dpo_output["loss"].item()
         if not math.isfinite(loss_value):
             print("Loss is {}, stopping training".format(loss_value))
+            print(f"add loss is {add_loss}")
             sys.exit(1)
 
         loss /= accum_iter
@@ -85,7 +86,11 @@ def train_one_epoch(model: torch.nn.Module,
 
         metric_logger.update(dpo_loss=dpo_loss_value)
         metric_logger.update(**{key: val[0].item() for key, val in additional_loss_dict.items()})
-        metric_logger.update(**{key: val.item() for key, val in dpo_output.items()})
+        to_update = dict()
+        for key, val in dpo_output.items():
+            if not val.isnan().item():
+                to_update[key] = val.item()
+        metric_logger.update(**to_update)
 
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(lr=lr)
