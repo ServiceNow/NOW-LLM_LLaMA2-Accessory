@@ -410,4 +410,6 @@ if __name__ == '__main__':
     args = args.parse_args()
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    with open(os.path.join(args.output_dir, "args.json"), "w+") as f:
+        json.dump(vars(args), f)
     main(args)
